@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Prueba MindAR - 3 Marcadores y Audios</title>
+
+  <!-- Librerías A-Frame y MindAR -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #boton-inicio {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      padding: 16px 28px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    #ui-container {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      pointer-events: none;
+      font-size: 14px;
+      text-align: center;
+      width: 80%;
+      max-width: 320px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Botón obligatorio para desbloquear el audio en móviles -->
+  <button id="boton-inicio">Toca para Iniciar Cámara y Audio</button>
+  <div id="ui-container">Apunta con la cámara a cualquiera de las 3 páginas</div>
+
+  <!-- Declaración de los 3 audios -->
+  <audio id="audio0" src="audio1.mp3" preload="auto"></audio>
+  <audio id="audio1" src="audio2.mp3" preload="auto"></audio>
+  <audio id="audio2" src="audio3.mp3" preload="auto"></audio>
+
+  <!-- Escena AR -->
+  <a-scene 
+    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Marcadores correspondientes al orden en que subiste las fotos al compilador -->
+    <a-entity id="target0" mindar-image-target="targetIndex: 0"></a-entity>
+    <a-entity id="target1" mindar-image-target="targetIndex: 1"></a-entity>
+    <a-entity id="target2" mindar-image-target="targetIndex: 2"></a-entity>
+  </a-scene>
+
+  <script>
+    const btnInicio = document.querySelector('#boton-inicio');
+    const uiContainer = document.querySelector('#ui-container');
+
+    const audios = [
+      document.querySelector('#audio0'),
+      document.querySelector('#audio1'),
+      document.querySelector('#audio2')
+    ];
+
+    const targets = [
+      document.querySelector('#target0'),
+      document.querySelector('#target1'),
+      document.querySelector('#target2')
+    ];
+
+    // Detiene todos los audios y los rebobina a 0 para que no se solapen
+    function silenciarAudios() {
+      audios.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+    }
+
+    // 1. Al pulsar el botón, desbloqueamos el audio de los 3 elementos a la vez
+    btnInicio.addEventListener('click', () => {
+      audios.forEach(audio => {
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }).catch(err => console.log('Audio init:', err));
+      });
+
+      btnInicio.style.display = 'none';
+      uiContainer.innerText = 'Buscando imagen... Enfoca una página';
+    });
+
+    // 2. Control de eventos para cada marcador
+    targets.forEach((targetEl, index) => {
+      targetEl.addEventListener('targetFound', () => {
+        silenciarAudios();
+        audios[index].play();
+        uiContainer.innerText = `Página ${index + 1} detectada - Reproduciendo audio`;
+      });
+
+      targetEl.addEventListener('targetLost', () => {
+        audios[index].pause();
+        uiContainer.innerText = 'Buscando imagen... Enfoca una página';
+      });
+    });
+  </script>
+</body>
+</html>
